@@ -5,70 +5,91 @@
 <title>Repartidor | SAL DEL SERI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- Firebase COMPAT (más estable) -->
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
-
 <style>
-body{
-  margin:0;
-  font-family:Arial, sans-serif;
-  background:#f4f4f4;
+* {
+  box-sizing: border-box;
 }
-header{
-  background:#f37021;
-  color:#fff;
-  padding:15px;
-  display:flex;
-  align-items:center;
-  gap:10px;
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
 }
-header img{
-  height:40px;
+
+header {
+  background: #e46b0a;
+  padding: 15px;
+  text-align: center;
 }
-header h1{
-  font-size:18px;
-  margin:0;
+
+header img {
+  max-width: 180px;
 }
-.container{
-  padding:15px;
+
+.contenedor {
+  max-width: 900px;
+  margin: auto;
+  padding: 15px;
 }
-.card{
-  background:#fff;
-  border-radius:12px;
-  padding:15px;
-  margin-bottom:15px;
-  box-shadow:0 4px 10px rgba(0,0,0,.1);
+
+h2 {
+  margin-top: 10px;
+  text-align: center;
 }
-.card h2{
-  margin:0 0 5px;
-  font-size:16px;
+
+.pedido {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
-.card p{
-  margin:3px 0;
-  font-size:14px;
+
+.pedido.entregado {
+  color: #1fa84f;
+  font-weight: bold;
 }
-.botones{
-  margin-top:10px;
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
+
+.pedido small {
+  display: block;
+  margin-top: 3px;
 }
-button{
-  border:none;
-  padding:8px 12px;
-  border-radius:8px;
-  color:#fff;
-  cursor:pointer;
+
+.botones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 10px;
 }
-.maps{background:#4CAF50}
-.waze{background:#1E88E5}
-.entregado{background:#2ecc71}
-.cancelado{background:#e74c3c}
-.vacio{
-  text-align:center;
-  color:#777;
-  margin-top:40px;
+
+.botones button {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.maps {
+  background: #34a853;
+  color: white;
+}
+
+.waze {
+  background: #1da1f2;
+  color: white;
+}
+
+.entregar {
+  background: #1fa84f;
+  color: white;
+}
+
+@media (max-width: 600px) {
+  .botones {
+    flex-direction: column;
+  }
 }
 </style>
 </head>
@@ -76,16 +97,20 @@ button{
 <body>
 
 <header>
-  <img src="logo-sal-del-seri.png" alt="SAL DEL SERI">
-  <h1>Pedidos (Repartidor)</h1>
+  <!-- 🔥 LOGO SAL DEL SERI -->
+  <img src="yiyi.png" alt="SAL DEL SERI">
 </header>
 
-<div class="container" id="lista">
-  <p class="vacio">Cargando pedidos...</p>
+<div class="contenedor">
+  <h2>Pedidos pendientes</h2>
+  <div id="listaPedidos"></div>
 </div>
 
-<script>
-/* 🔥 CONFIGURACIÓN FIREBASE */
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyDMBBaEgAk1EuRj7QSMqVsxnlC7aUvMz5w",
   authDomain: "sal-del-seri.firebaseapp.com",
@@ -95,94 +120,74 @@ const firebaseConfig = {
   appId: "1:465867166498:web:683a92396f3e369df4cb7b"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.firestore();
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-const lista = document.getElementById("lista");
+const listaPedidos = document.getElementById("listaPedidos");
 
-/* 🧭 MAPAS */
-function abrirMaps(dir){
-  window.open(
-    "https://www.google.com/maps/search/?api=1&query=" +
-    encodeURIComponent(dir),
-    "_blank"
-  );
-}
+/* 🔄 PEDIDOS EN TIEMPO REAL */
+onSnapshot(collection(db, "pedidos"), snapshot => {
+  listaPedidos.innerHTML = "";
 
-function abrirWaze(dir){
-  window.open(
-    "https://waze.com/ul?q=" +
-    encodeURIComponent(dir) +
-    "&navigate=yes",
-    "_blank"
-  );
-}
-
-/* ✅ ESTADOS */
-function marcarEntregado(id){
-  if(!confirm("¿Marcar pedido como ENTREGADO?")) return;
-  db.collection("pedidos").doc(id).update({
-    estado: "entregado"
-  });
-}
-
-function marcarCancelado(id){
-  if(!confirm("¿Cancelar pedido?")) return;
-  db.collection("pedidos").doc(id).update({
-    estado: "cancelado"
-  });
-}
-
-/* 🔄 ESCUCHAR TODOS LOS PEDIDOS (SIN FILTROS) */
-db.collection("pedidos")
-.onSnapshot(snapshot=>{
-  lista.innerHTML="";
-
-  if(snapshot.empty){
-    lista.innerHTML = '<p class="vacio">No hay pedidos en Firebase</p>';
+  if (snapshot.empty) {
+    listaPedidos.innerHTML = "<p>No hay pedidos.</p>";
     return;
   }
 
-  snapshot.forEach(doc=>{
-    const p = doc.data();
+  snapshot.forEach(docSnap => {
+    const pedido = docSnap.data();
+    const id = docSnap.id;
 
-    const card = document.createElement("div");
-    card.className="card";
+    const div = document.createElement("div");
+    div.classList.add("pedido");
 
-    card.innerHTML = `
-      <h2>${p.negocio || "Sin nombre"}</h2>
-      <p><strong>Dirección:</strong> ${p.direccion || "Sin dirección"}</p>
-      <p><strong>Sacos:</strong> ${p.sacos || 0}</p>
-      <p><strong>Total:</strong> $${p.total || 0} MXN</p>
-      <p><strong>Estado:</strong> ${p.estado || "sin estado"}</p>
+    if (pedido.estado === "entregado") {
+      div.classList.add("entregado");
+    }
+
+    const direccionURL = encodeURIComponent(pedido.direccion);
+
+    div.innerHTML = `
+      <strong>${pedido.negocio}</strong>
+      <small>Responsable: ${pedido.responsable}</small>
+      <small>Teléfono: ${pedido.telefono}</small>
+      <small>Dirección: ${pedido.direccion}</small>
+      <small>Sacos: ${pedido.sacos}</small>
+      <small>Total: $${pedido.total} MXN</small>
 
       <div class="botones">
-        <button class="maps">Maps</button>
-        <button class="waze">Waze</button>
-        <button class="entregado">Entregado</button>
-        <button class="cancelado">Cancelar</button>
+        <button class="maps"
+          onclick="window.open('https://www.google.com/maps/search/?api=1&query=${direccionURL}', '_blank')">
+          Google Maps
+        </button>
+
+        <button class="waze"
+          onclick="window.open('https://waze.com/ul?q=${direccionURL}', '_blank')">
+          Waze
+        </button>
+
+        ${pedido.estado !== "entregado" ? `
+        <button class="entregar" onclick="entregarPedido('${id}')">
+          Marcar entregado
+        </button>` : ``}
       </div>
     `;
 
-    lista.appendChild(card);
-
-    card.querySelector(".maps").onclick =
-      ()=>abrirMaps(p.direccion || "");
-
-    card.querySelector(".waze").onclick =
-      ()=>abrirWaze(p.direccion || "");
-
-    card.querySelector(".entregado").onclick =
-      ()=>marcarEntregado(doc.id);
-
-    card.querySelector(".cancelado").onclick =
-      ()=>marcarCancelado(doc.id);
+    listaPedidos.appendChild(div);
   });
 });
+
+/* ✅ MARCAR COMO ENTREGADO */
+window.entregarPedido = async (id) => {
+  await updateDoc(doc(db, "pedidos", id), {
+    estado: "entregado"
+  });
+};
 </script>
 
 </body>
 </html>
+
 
 
 
