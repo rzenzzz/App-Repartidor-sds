@@ -32,21 +32,27 @@ h2{color:#ff7a00}
   margin:5px 0;
   font-size:14px;
 }
+
 .botones{
   display:flex;
   gap:10px;
   margin-top:10px;
+  flex-wrap:wrap;
 }
-button{
+
+.boton{
   flex:1;
   padding:10px;
-  border:none;
+  text-align:center;
+  color:#fff;
   border-radius:5px;
-  cursor:pointer;
   font-size:14px;
+  text-decoration:none;
 }
-.maps{background:#2196F3;color:#fff}
-.entregar{background:#4CAF50;color:#fff}
+
+.maps{background:#34A853;}     /* Google Maps */
+.waze{background:#1E88E5;}     /* Waze */
+.entregar{background:#4CAF50; cursor:pointer; border:none;}
 </style>
 </head>
 
@@ -79,11 +85,6 @@ const db = getFirestore(app);
 
 const lista = document.getElementById("lista");
 
-function abrirMaps(direccion){
-  const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`;
-  window.open(url, "_blank");
-}
-
 async function entregarPedido(id, pedido){
   if(!confirm("¿Confirmas que el pedido fue entregado?")) return;
 
@@ -92,7 +93,7 @@ async function entregarPedido(id, pedido){
     entregadoEn: new Date()
   });
 
-  const mensaje = 
+  const mensaje =
 `🧂 *SAL DEL SERI*
 ────────────────
 ✅ *PEDIDO ENTREGADO*
@@ -116,6 +117,8 @@ onSnapshot(collection(db,"pedidos"), snap=>{
     const p = docu.data();
     if(p.estado !== "pendiente") return;
 
+    const direccion = encodeURIComponent(p.direccion);
+
     const div = document.createElement("div");
     div.className = "pedido";
 
@@ -128,13 +131,21 @@ onSnapshot(collection(db,"pedidos"), snap=>{
       <p><b>Total:</b> $${p.total} MXN</p>
 
       <div class="botones">
-        <button class="maps">📍 Google Maps</button>
-        <button class="entregar">✅ Entregado</button>
+        <a class="boton maps"
+           href="https://www.google.com/maps/search/?api=1&query=${direccion}"
+           target="_blank">
+           📍 Google Maps
+        </a>
+
+        <a class="boton waze"
+           href="https://waze.com/ul?q=${direccion}"
+           target="_blank">
+           🚗 Waze
+        </a>
+
+        <button class="boton entregar">✅ Entregado</button>
       </div>
     `;
-
-    div.querySelector(".maps")
-      .onclick = ()=>abrirMaps(p.direccion);
 
     div.querySelector(".entregar")
       .onclick = ()=>entregarPedido(docu.id,p);
@@ -150,4 +161,3 @@ onSnapshot(collection(db,"pedidos"), snap=>{
 
 </body>
 </html>
-
