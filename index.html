@@ -70,21 +70,22 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const lista = document.getElementById("listaPedidos");
 
-function abrirMaps(direccion){
-  const url = "https://www.google.com/maps/search/?api=1&query=" +
-              encodeURIComponent(direccion);
-  window.open(url, "_blank");
+function abrirMaps(dir){
+  window.open(
+    "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(dir),
+    "_blank"
+  );
 }
 
-function abrirWaze(direccion){
-  const url = "https://waze.com/ul?q=" +
-              encodeURIComponent(direccion) +
-              "&navigate=yes";
-  window.open(url, "_blank");
+function abrirWaze(dir){
+  window.open(
+    "https://waze.com/ul?q="+encodeURIComponent(dir)+"&navigate=yes",
+    "_blank"
+  );
 }
 
 function marcarEntregado(id){
-  if(!confirm("¿Marcar pedido como ENTREGADO?")) return;
+  if(!confirm("¿Marcar como ENTREGADO?")) return;
   db.collection("pedidos").doc(id).update({estado:"entregado"});
 }
 
@@ -94,7 +95,7 @@ function cancelarPedido(id){
 }
 
 db.collection("pedidos")
-.where("estado","==","pendiente")
+.where("estado","in",["pendiente"])
 .onSnapshot(snapshot=>{
   lista.innerHTML="";
 
@@ -108,40 +109,41 @@ db.collection("pedidos")
 
     const card = document.createElement("div");
     card.className="card";
-
     card.innerHTML=`
-      <h2>${p.negocio}</h2>
+      <h2>${p.negocio || "Sin nombre"}</h2>
       <p class="info">${p.direccion}</p>
       <p class="info">Sacos: ${p.sacos}</p>
       <p class="info"><strong>Total: $${p.total}</strong></p>
 
       <div class="buttons">
-        <button class="maps" data-dir="${p.direccion}">Maps</button>
-        <button class="waze" data-dir="${p.direccion}">Waze</button>
-        <button class="entregado" data-id="${doc.id}">Entregado</button>
-        <button class="cancelar" data-id="${doc.id}">Cancelar</button>
+        <button class="maps">Maps</button>
+        <button class="waze">Waze</button>
+        <button class="entregado">Entregado</button>
+        <button class="cancelar">Cancelar</button>
       </div>
     `;
 
     lista.appendChild(card);
 
     card.querySelector(".maps")
-      .addEventListener("click",e=>abrirMaps(e.target.dataset.dir));
+      .onclick=()=>abrirMaps(p.direccion);
 
     card.querySelector(".waze")
-      .addEventListener("click",e=>abrirWaze(e.target.dataset.dir));
+      .onclick=()=>abrirWaze(p.direccion);
 
     card.querySelector(".entregado")
-      .addEventListener("click",e=>marcarEntregado(e.target.dataset.id));
+      .onclick=()=>marcarEntregado(doc.id);
 
     card.querySelector(".cancelar")
-      .addEventListener("click",e=>cancelarPedido(e.target.dataset.id));
+      .onclick=()=>cancelarPedido(doc.id);
   });
 });
 </script>
 
 </body>
 </html>
+
+
 
 
 
