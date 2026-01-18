@@ -2,105 +2,144 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Pedidos Pendientes | Sal del Seri</title>
+<title>Repartidor | SAL DEL SERI</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- Firebase COMPAT (más estable) -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-body{margin:0;font-family:Arial;background:#f6f2ec}
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:#f4f4f4;
+}
 header{
   background:#f37021;
   color:#fff;
-  padding:12px;
+  padding:15px;
   display:flex;
   align-items:center;
+  gap:10px;
 }
-header img{height:40px;margin-right:10px}
-header h1{font-size:18px;margin:0}
-.container{padding:20px}
+header img{
+  height:40px;
+}
+header h1{
+  font-size:18px;
+  margin:0;
+}
+.container{
+  padding:15px;
+}
 .card{
   background:#fff;
-  border-radius:16px;
-  padding:20px;
-  margin-bottom:20px;
-  box-shadow:0 8px 20px rgba(0,0,0,.1);
+  border-radius:12px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
 }
-.card h2{margin:0 0 8px}
-.info{font-size:14px;margin:4px 0}
-.buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.card h2{
+  margin:0 0 5px;
+  font-size:16px;
+}
+.card p{
+  margin:3px 0;
+  font-size:14px;
+}
+.botones{
+  margin-top:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
 button{
   border:none;
-  padding:10px 14px;
-  border-radius:10px;
+  padding:8px 12px;
+  border-radius:8px;
   color:#fff;
   cursor:pointer;
 }
 .maps{background:#4CAF50}
 .waze{background:#1E88E5}
 .entregado{background:#2ecc71}
-.cancelar{background:#e74c3c}
-.empty{text-align:center;color:#777;margin-top:40px}
+.cancelado{background:#e74c3c}
+.vacio{
+  text-align:center;
+  color:#777;
+  margin-top:40px;
+}
 </style>
 </head>
 
 <body>
 
 <header>
-  <img src="logo-sal-del-seri.png">
-  <h1>PEDIDOS PENDIENTES</h1>
+  <img src="logo-sal-del-seri.png" alt="SAL DEL SERI">
+  <h1>Pedidos (Repartidor)</h1>
 </header>
 
-<div class="container" id="listaPedidos">
-  <p class="empty">Cargando pedidos...</p>
+<div class="container" id="lista">
+  <p class="vacio">Cargando pedidos...</p>
 </div>
 
 <script>
+/* 🔥 CONFIGURACIÓN FIREBASE */
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_DOMINIO.firebaseapp.com",
-  projectId: "TU_PROJECT_ID",
-  storageBucket: "TU_BUCKET.appspot.com",
-  messagingSenderId: "TU_SENDER_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyDMBBaEgAk1EuRj7QSMqVsxnlC7aUvMz5w",
+  authDomain: "sal-del-seri.firebaseapp.com",
+  projectId: "sal-del-seri",
+  storageBucket: "sal-del-seri.firebasestorage.app",
+  messagingSenderId: "465867166498",
+  appId: "1:465867166498:web:683a92396f3e369df4cb7b"
 };
 
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
-const lista = document.getElementById("listaPedidos");
 
+const lista = document.getElementById("lista");
+
+/* 🧭 MAPAS */
 function abrirMaps(dir){
   window.open(
-    "https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(dir),
+    "https://www.google.com/maps/search/?api=1&query=" +
+    encodeURIComponent(dir),
     "_blank"
   );
 }
 
 function abrirWaze(dir){
   window.open(
-    "https://waze.com/ul?q="+encodeURIComponent(dir)+"&navigate=yes",
+    "https://waze.com/ul?q=" +
+    encodeURIComponent(dir) +
+    "&navigate=yes",
     "_blank"
   );
 }
 
+/* ✅ ESTADOS */
 function marcarEntregado(id){
-  if(!confirm("¿Marcar como ENTREGADO?")) return;
-  db.collection("pedidos").doc(id).update({estado:"entregado"});
+  if(!confirm("¿Marcar pedido como ENTREGADO?")) return;
+  db.collection("pedidos").doc(id).update({
+    estado: "entregado"
+  });
 }
 
-function cancelarPedido(id){
+function marcarCancelado(id){
   if(!confirm("¿Cancelar pedido?")) return;
-  db.collection("pedidos").doc(id).update({estado:"cancelado"});
+  db.collection("pedidos").doc(id).update({
+    estado: "cancelado"
+  });
 }
 
+/* 🔄 ESCUCHAR TODOS LOS PEDIDOS (SIN FILTROS) */
 db.collection("pedidos")
-.where("estado","in",["pendiente"])
 .onSnapshot(snapshot=>{
   lista.innerHTML="";
 
   if(snapshot.empty){
-    lista.innerHTML='<p class="empty">No hay pedidos pendientes</p>';
+    lista.innerHTML = '<p class="vacio">No hay pedidos en Firebase</p>';
     return;
   }
 
@@ -109,39 +148,42 @@ db.collection("pedidos")
 
     const card = document.createElement("div");
     card.className="card";
-    card.innerHTML=`
-      <h2>${p.negocio || "Sin nombre"}</h2>
-      <p class="info">${p.direccion}</p>
-      <p class="info">Sacos: ${p.sacos}</p>
-      <p class="info"><strong>Total: $${p.total}</strong></p>
 
-      <div class="buttons">
+    card.innerHTML = `
+      <h2>${p.negocio || "Sin nombre"}</h2>
+      <p><strong>Dirección:</strong> ${p.direccion || "Sin dirección"}</p>
+      <p><strong>Sacos:</strong> ${p.sacos || 0}</p>
+      <p><strong>Total:</strong> $${p.total || 0} MXN</p>
+      <p><strong>Estado:</strong> ${p.estado || "sin estado"}</p>
+
+      <div class="botones">
         <button class="maps">Maps</button>
         <button class="waze">Waze</button>
         <button class="entregado">Entregado</button>
-        <button class="cancelar">Cancelar</button>
+        <button class="cancelado">Cancelar</button>
       </div>
     `;
 
     lista.appendChild(card);
 
-    card.querySelector(".maps")
-      .onclick=()=>abrirMaps(p.direccion);
+    card.querySelector(".maps").onclick =
+      ()=>abrirMaps(p.direccion || "");
 
-    card.querySelector(".waze")
-      .onclick=()=>abrirWaze(p.direccion);
+    card.querySelector(".waze").onclick =
+      ()=>abrirWaze(p.direccion || "");
 
-    card.querySelector(".entregado")
-      .onclick=()=>marcarEntregado(doc.id);
+    card.querySelector(".entregado").onclick =
+      ()=>marcarEntregado(doc.id);
 
-    card.querySelector(".cancelar")
-      .onclick=()=>cancelarPedido(doc.id);
+    card.querySelector(".cancelado").onclick =
+      ()=>marcarCancelado(doc.id);
   });
 });
 </script>
 
 </body>
 </html>
+
 
 
 
