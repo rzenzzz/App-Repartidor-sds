@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Sal del Seri – Pedidos</title>
+<title>Sal del Seri</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
@@ -15,7 +14,7 @@
   --verde:#2ecc71;
   --rojo:#e74c3c;
   --azul:#1e88e5;
-  --fondo:#f7f2ea;
+  --fondo:#f6f2eb;
 }
 
 *{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
@@ -27,38 +26,45 @@ body{
 
 /* HEADER */
 header{
+  height:60px;
   background:var(--naranja);
   color:#fff;
-  padding:10px 12px;
   display:flex;
   align-items:center;
+  padding:0 15px;
   gap:12px;
-  position:sticky;
+  position:fixed;
   top:0;
+  width:100%;
   z-index:10;
 }
 
 .menu-btn{
-  width:40px;
-  height:40px;
-  display:flex;
-  align-items:center;
-  justify-content:center;
   font-size:26px;
   cursor:pointer;
-  flex-shrink:0;
+  width:40px;
+  text-align:center;
 }
 
 header img{
-  height:35px;
+  height:36px;
 }
 
-header b{
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+header span{
+  font-weight:bold;
   font-size:18px;
 }
+
+/* OVERLAY */
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  display:none;
+  z-index:19;
+}
+
+.overlay.active{display:block}
 
 /* SIDEBAR */
 .sidebar{
@@ -68,15 +74,12 @@ header b{
   width:260px;
   height:100%;
   background:#fff;
-  box-shadow:2px 0 10px rgba(0,0,0,.15);
   padding:20px;
   transition:.3s;
   z-index:20;
 }
 
 .sidebar.active{left:0}
-
-.sidebar h3{margin-top:0}
 
 .sidebar button{
   width:100%;
@@ -91,7 +94,7 @@ header b{
 
 /* CONTENIDO */
 .container{
-  padding:20px;
+  padding:90px 20px 20px;
 }
 
 .card{
@@ -104,19 +107,17 @@ header b{
 
 @keyframes fade{
   from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:translateY(0)}
+  to{opacity:1;transform:none}
 }
 
-.order h3{margin:0 0 5px}
-
 .buttons{
-  margin-top:15px;
   display:flex;
   flex-wrap:wrap;
   gap:10px;
+  margin-top:15px;
 }
 
-.buttons button{
+button{
   border:none;
   padding:10px 14px;
   color:#fff;
@@ -130,9 +131,7 @@ header b{
 .cancelar{background:var(--rojo)}
 
 /* VENTAS */
-#ventas{
-  display:none;
-}
+#ventas{display:none}
 
 .stats{
   display:grid;
@@ -149,64 +148,54 @@ header b{
   text-align:center;
 }
 
-canvas{
-  margin-top:30px;
-  max-height:300px;
+canvas{max-height:300px;margin-top:30px}
+
+/* RESPONSIVE */
+@media(max-width:600px){
+  header span{font-size:16px}
 }
 </style>
 </head>
 
 <body>
 
-<!-- SIDEBAR -->
+<div class="overlay" id="overlay" onclick="cerrarMenu()"></div>
+
 <div class="sidebar" id="sidebar">
   <h3>Menú</h3>
-  <button onclick="mostrarVentas()">📊 Ventas</button>
+  <button onclick="abrirVentas()">📊 Ventas</button>
 </div>
 
-<!-- HEADER -->
 <header>
   <div class="menu-btn" onclick="toggleMenu()">☰</div>
-  <img src="logo.png" alt="Sal del Seri">
-  <b>PEDIDOS PENDIENTES</b>
+  <img src="logo.png">
+  <span>PEDIDOS PENDIENTES</span>
 </header>
 
-<!-- PEDIDOS -->
 <div class="container" id="pedidos">
-  <div class="card order">
+  <div class="card">
     <h3>Abarrotes Don Pedro</h3>
     <p>4ta periférico 532</p>
     <p>Sacos: <b id="sacosPedido">100</b></p>
     <p>Total: <b>$13,500</b></p>
 
     <div class="buttons">
-      <button class="maps" onclick="abrirMaps()">Maps</button>
-      <button class="waze" onclick="abrirWaze()">Waze</button>
+      <button class="maps" onclick="maps()">Maps</button>
+      <button class="waze" onclick="waze()">Waze</button>
       <button class="entregado" onclick="entregar()">Entregado</button>
       <button class="cancelar">Cancelar</button>
     </div>
   </div>
 </div>
 
-<!-- VENTAS -->
 <div class="container" id="ventas">
   <button onclick="volver()">⬅ Volver</button>
-
   <h2>📊 Ventas del Mes</h2>
 
   <div class="stats">
-    <div class="stat">
-      <h3>Sacos vendidos</h3>
-      <p id="totalSacos">0</p>
-    </div>
-    <div class="stat">
-      <h3>Ingresos</h3>
-      <p id="ingresos">$0</p>
-    </div>
-    <div class="stat">
-      <h3>Ganancia</h3>
-      <p id="ganancia">$0</p>
-    </div>
+    <div class="stat"><h3>Sacos</h3><p id="vsacos">0</p></div>
+    <div class="stat"><h3>Ingresos</h3><p id="ving">$0</p></div>
+    <div class="stat"><h3>Ganancia</h3><p id="vgan">$0</p></div>
   </div>
 
   <canvas id="grafica"></canvas>
@@ -214,24 +203,30 @@ canvas{
 
 <script>
 let sidebar=document.getElementById("sidebar")
+let overlay=document.getElementById("overlay")
 let pedidos=document.getElementById("pedidos")
 let ventas=document.getElementById("ventas")
 
-let sacosVendidos=0
-let precioSaco=135
-let costoProduccion=67.5
-
+let sacos=0
+let precio=135
+let costo=67.5
 let chart
 
 function toggleMenu(){
-  sidebar.classList.toggle("active")
+  sidebar.classList.add("active")
+  overlay.classList.add("active")
 }
 
-function mostrarVentas(){
+function cerrarMenu(){
+  sidebar.classList.remove("active")
+  overlay.classList.remove("active")
+}
+
+function abrirVentas(){
   pedidos.style.display="none"
   ventas.style.display="block"
-  sidebar.classList.remove("active")
-  renderGrafica()
+  cerrarMenu()
+  grafica()
 }
 
 function volver(){
@@ -240,48 +235,41 @@ function volver(){
 }
 
 function entregar(){
-  let sacos=parseInt(document.getElementById("sacosPedido").innerText)
-  sacosVendidos+=sacos
-  actualizarVentas()
-  alert("✅ Pedido entregado")
+  sacos+=parseInt(document.getElementById("sacosPedido").innerText)
+  actualizar()
+  alert("Pedido entregado correctamente")
 }
 
-function actualizarVentas(){
-  let ingresos=sacosVendidos*precioSaco
-  let ganancia=sacosVendidos*(precioSaco-costoProduccion)
-
-  document.getElementById("totalSacos").innerText=sacosVendidos
-  document.getElementById("ingresos").innerText="$"+ingresos.toLocaleString()
-  document.getElementById("ganancia").innerText="$"+ganancia.toLocaleString()
-
-  renderGrafica()
+function actualizar(){
+  let ingresos=sacos*precio
+  let ganancia=sacos*(precio-costo)
+  vsacos.innerText=sacos
+  ving.innerText="$"+ingresos.toLocaleString()
+  vgan.innerText="$"+ganancia.toLocaleString()
+  grafica()
 }
 
-function renderGrafica(){
+function grafica(){
   let ctx=document.getElementById("grafica")
   if(chart) chart.destroy()
-
   chart=new Chart(ctx,{
     type:"bar",
     data:{
       labels:["Ventas"],
       datasets:[{
-        label:"Sacos vendidos",
-        data:[sacosVendidos],
+        data:[sacos],
         backgroundColor:"#f36f21"
       }]
     }
   })
 }
 
-/* MAPS COMPATIBLE */
-function abrirMaps(){
-  window.location.href="https://www.google.com/maps/search/?api=1&query=4ta+periferico+532"
+function maps(){
+  location.href="https://www.google.com/maps/search/?api=1&query=4ta+periferico+532"
 }
 
-/* WAZE */
-function abrirWaze(){
-  window.location.href="https://waze.com/ul?q=4ta%20periferico%20532"
+function waze(){
+  location.href="https://waze.com/ul?q=4ta%20periferico%20532"
 }
 </script>
 
