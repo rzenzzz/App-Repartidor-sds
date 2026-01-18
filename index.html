@@ -2,78 +2,239 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Repartidor | SAL DEL SERI</title>
+<title>SAL DEL SERI | Repartidor</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- 🎨 ESTILOS -->
+<style>
+:root{
+  --amarillo:#FFD700;
+  --naranja:#E67E22;
+  --negro:#000;
+  --fondo:#FFF4E0;
+}
+
+*{box-sizing:border-box;font-family:Arial}
+
+body{
+  margin:0;
+  background:var(--fondo);
+}
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>SAL DEL SERI | Repartidor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-body{
-  font-family:Arial;
-  background:#f5f5f5;
-  padding:20px
+:root{
+  --amarillo:#FFD700;
+  --naranja:#E65100;
+  --negro:#000;
+  --fondo:#FFF3E0;
 }
-h2{text-align:center}
-.pedido{
+*{box-sizing:border-box;font-family:Arial}
+
+body{margin:0;background:var(--fondo)}
+
+header{
+  background:var(--amarillo);
+  padding:15px;
+  display:flex;
+  align-items:center;
+  gap:15px;
+}
+
+.menu{font-size:24px;cursor:pointer}
+header img{height:40px}
+header h1{margin:0;font-size:20px}
+
+.container{padding:20px;animation:fade .4s}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+
+.card{
   background:#fff;
   padding:15px;
   margin-bottom:15px;
-  border-radius:8px;
-  box-shadow:0 2px 5px rgba(0,0,0,.1)
+  border-radius:12px;
+  box-shadow:0 4px 10px rgba(0,0,0,.1);
 }
-.pedido p{margin:5px 0}
+
+.btn{
+  padding:8px 12px;
+  border:none;
+  border-radius:6px;
+  font-weight:bold;
+  cursor:pointer;
+  margin:5px 5px 0 0;
+}
+
+.maps{background:#1e88e5;color:#fff}
+.entregar{background:#2e7d32;color:#fff}
+.cancelar{background:#c62828;color:#fff}
+.volver{background:#000;color:#FFD700}
+
+.hidden{display:none}
+
+.ventas-box{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:15px;
+  margin-top:20px;
+}
+
+.kpi{
+  background:var(--naranja);
+  color:#fff;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
+}
+.kpi p{font-size:24px;margin:10px 0 0}
 </style>
 </head>
 
 <body>
 
-<h2>📦 Pedidos Pendientes</h2>
-<div id="lista"></div>
+<header>
+  <div class="menu" onclick="abrirVentas()">☰</div>
+  <img src="yiyi.png">
+  <h1>Pedidos Pendientes</h1>
+</header>
 
-<!-- 🔥 FIREBASE -->
+<div class="container" id="pedidosView"></div>
+
+<div class="container hidden" id="ventasView">
+  <button class="btn volver" onclick="volver()">← Volver</button>
+  <h2>📊 Ventas del Mes</h2>
+
+  <div style="height:300px">
+    <canvas id="grafica"></canvas>
+  </div>
+
+  <div class="ventas-box">
+    <div class="kpi">
+      <h3>Sacos vendidos</h3>
+      <p id="sacos">0</p>
+    </div>
+    <div class="kpi">
+      <h3>Ingresos</h3>
+      <p id="ingresos">$0</p>
+    </div>
+    <div class="kpi">
+      <h3>Ganancia</h3>
+      <p id="ganancia">$0</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyDMBBaEgAk1EuRj7QSMqVsxnlC7aUvMz5w",
   authDomain: "sal-del-seri.firebaseapp.com",
-  projectId: "sal-del-seri",
-  storageBucket: "sal-del-seri.firebasestorage.app",
-  messagingSenderId: "465867166498",
-  appId: "1:465867166498:web:683a92396f3e369df4cb7b"
+  projectId: "sal-del-seri"
 };
 
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const lista = document.getElementById("lista");
+const PRECIO = 135;
+const COSTO = 67.5;
 
-const q = query(
-  collection(db,"pedidos"),
-  where("estado","==","pendiente")
-);
+let chart;
 
-onSnapshot(q,(snapshot)=>{
-  lista.innerHTML = "";
-  snapshot.forEach(doc=>{
-    const d = doc.data();
-    lista.innerHTML += `
-      <div class="pedido">
-        <p><b>Negocio:</b> ${d.negocio}</p>
-        <p><b>Responsable:</b> ${d.responsable}</p>
-        <p><b>Teléfono:</b> ${d.telefono}</p>
-        <p><b>Dirección:</b> ${d.direccion}</p>
-        <p><b>Sacos:</b> ${d.sacos}</p>
-        <p><b>Total:</b> $${d.total} MXN</p>
-        <p><b>Fecha:</b> ${d.fecha}</p>
-      </div>
-    `;
+onSnapshot(collection(db,"pedidos"),snap=>{
+  pedidosView.innerHTML="";
+  let sacos=0, ingresos=0;
+
+  snap.forEach(d=>{
+    const p=d.data();
+
+    /* 🔴 SOLO PENDIENTES */
+    if(p.estado==="pendiente"){
+      pedidosView.innerHTML+=`
+        <div class="card">
+          <b>${p.negocio}</b><br>
+          ${p.direccion}<br>
+          Sacos: ${p.sacos}<br><br>
+
+          <button class="btn maps" onclick="maps('${p.direccion}')">📍 Maps</button>
+          <button class="btn entregar" onclick="entregar('${d.id}','${p.telefono}','${p.negocio}')">✔ Entregado</button>
+          <button class="btn cancelar" onclick="cancelar('${d.id}')">✖ Cancelado</button>
+        </div>
+      `;
+    }
+
+    /* 🟢 SOLO ENTREGADOS CUENTAN */
+    if(p.estado==="entregado"){
+      sacos+=p.sacos;
+      ingresos+=p.sacos*PRECIO;
+    }
   });
 
-  if(snapshot.empty){
-    lista.innerHTML = "<p>No hay pedidos pendientes</p>";
-  }
+  actualizarVentas(sacos,ingresos);
 });
-</script>
 
+window.maps=d=>window.open(`https://www.google.com/maps/search/?query=${encodeURIComponent(d)}`);
+
+window.entregar=async(id,telefono,negocio)=>{
+  await updateDoc(doc(db,"pedidos",id),{estado:"entregado"});
+
+  const mensaje=`Hola, tu pedido de SAL DEL SERI ya fue entregado correctamente ✅
+Gracias por tu compra 🧂`;
+
+  window.open(`https://wa.me/52${telefono}?text=${encodeURIComponent(mensaje)}`);
+};
+
+window.cancelar=async id=>{
+  await updateDoc(doc(db,"pedidos",id),{estado:"cancelado"});
+};
+
+function actualizarVentas(sacos,ingresos){
+  const ganancia = ingresos - (sacos*COSTO);
+
+  document.getElementById("sacos").innerText=sacos;
+  document.getElementById("ingresos").innerText=`$${ingresos}`;
+  document.getElementById("ganancia").innerText=`$${ganancia}`;
+
+  if(chart) chart.destroy();
+
+  chart=new Chart(grafica,{
+    type:"bar",
+    data:{
+      labels:["Ingresos","Ganancia"],
+      datasets:[{
+        data:[ingresos,ganancia],
+        backgroundColor:["#E65100","#2e7d32"],
+        borderRadius:12
+      }]
+    },
+    options:{
+      responsive:true,
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      animation:{duration:1200}
+    }
+  });
+}
+
+window.abrirVentas=()=>{
+  pedidosView.classList.add("hidden");
+  ventasView.classList.remove("hidden");
+};
+
+window.volver=()=>{
+  ventasView.classList.add("hidden");
+  pedidosView.classList.remove("hidden");
+};
+</script>
 </body>
 </html>
+
