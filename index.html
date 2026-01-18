@@ -5,54 +5,112 @@
 <title>SAL DEL SERI | Repartidor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- CHART -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 :root{
-  --naranja:#f57c00;
-  --naranja-oscuro:#e65100;
-  --gris:#f5f5f5;
+  --naranja:#f36c21;
+  --naranja-oscuro:#e85a10;
+  --gris:#f4f4f4;
   --verde:#25D366;
   --rojo:#e53935;
   --azul:#1e88e5;
 }
+
+*{box-sizing:border-box}
 body{margin:0;font-family:Arial;background:var(--gris)}
+
 header{
   background:var(--naranja);
-  color:white;
-  padding:10px 15px;
+  color:#fff;
+  padding:12px 15px;
   display:flex;
   align-items:center;
+  gap:10px;
+  position:sticky;
+  top:0;
+  z-index:5;
 }
-header img{height:40px;margin-right:10px}
-.menu-btn{font-size:24px;cursor:pointer;margin-right:10px}
+
+.menu-btn{
+  font-size:26px;
+  cursor:pointer;
+}
+
+header img{height:38px}
+
 #sidebar{
-  position:fixed;top:0;left:-260px;width:260px;height:100%;
-  background:#fff;box-shadow:2px 0 10px rgba(0,0,0,.2);
-  transition:.3s;padding:20px;z-index:10
+  position:fixed;
+  top:0;
+  left:-260px;
+  width:260px;
+  height:100%;
+  background:#fff;
+  box-shadow:2px 0 15px rgba(0,0,0,.3);
+  padding:20px;
+  transition:.3s;
+  z-index:20;
 }
+
+#sidebar h3{margin-top:0;color:var(--naranja)}
 #sidebar button{
-  width:100%;padding:12px;margin-bottom:10px;
-  border:none;background:var(--naranja);color:#fff;
-  font-size:16px;border-radius:6px;cursor:pointer
+  width:100%;
+  padding:12px;
+  margin-bottom:10px;
+  border:none;
+  background:var(--naranja);
+  color:#fff;
+  font-size:16px;
+  border-radius:6px;
+  cursor:pointer;
 }
-main{padding:20px}
+
+main{padding:15px}
+
 .pedido{
-  background:#fff;padding:15px;border-radius:8px;
-  margin-bottom:15px;box-shadow:0 2px 5px rgba(0,0,0,.1)
+  background:#fff;
+  padding:15px;
+  border-radius:8px;
+  margin-bottom:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+  animation:fade .3s ease;
 }
+
+@keyframes fade{
+  from{opacity:0;transform:translateY(10px)}
+  to{opacity:1}
+}
+
 .botones button{
-  margin-top:8px;margin-right:5px;padding:8px 10px;
-  border:none;border-radius:5px;color:#fff;cursor:pointer
+  margin-top:8px;
+  margin-right:5px;
+  padding:8px 10px;
+  border:none;
+  border-radius:5px;
+  color:#fff;
+  cursor:pointer;
 }
+
 .maps{background:#4caf50}
 .waze{background:var(--azul)}
 .entregado{background:var(--verde)}
 .cancelado{background:var(--rojo)}
+
 .hidden{display:none}
-canvas{background:#fff;padding:10px;border-radius:8px}
-.resumen{background:#fff;padding:15px;border-radius:8px;margin-top:15px}
+
+canvas{
+  background:#fff;
+  border-radius:8px;
+  padding:10px;
+}
+
+.resumen{
+  background:#fff;
+  padding:15px;
+  border-radius:8px;
+  margin-top:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,.15);
+}
 </style>
 </head>
 
@@ -61,10 +119,11 @@ canvas{background:#fff;padding:10px;border-radius:8px}
 <header>
   <span class="menu-btn" onclick="toggleMenu()">☰</span>
   <img src="yiyi.png">
-  <h3>PEDIDOS PENDIENTES</h3>
+  <b>PEDIDOS PENDIENTES</b>
 </header>
 
 <div id="sidebar">
+  <h3>Menú</h3>
   <button onclick="mostrarPedidos()">Pedidos</button>
   <button onclick="mostrarVentas()">Ventas</button>
 </div>
@@ -75,7 +134,7 @@ canvas{background:#fff;padding:10px;border-radius:8px}
 
 <section id="ventas" class="hidden">
   <button onclick="mostrarPedidos()">⬅ Regresar</button>
-  <canvas id="grafica"></canvas>
+  <canvas id="grafica" height="200"></canvas>
   <div class="resumen" id="resumenVentas"></div>
 </section>
 
@@ -90,76 +149,73 @@ const firebaseConfig = {
   authDomain: "sal-del-seri.firebaseapp.com",
   projectId: "sal-del-seri",
 };
+
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
 const pedidosDiv = document.getElementById("pedidos");
 const ventasDiv = document.getElementById("ventas");
-
 let chart;
 
-function toggleMenu(){
+window.toggleMenu = ()=>{
   const s=document.getElementById("sidebar");
   s.style.left = s.style.left==="0px" ? "-260px":"0px";
-}
+};
 
 window.mostrarPedidos = ()=>{
-  pedidosDiv.classList.remove("hidden");
   ventasDiv.classList.add("hidden");
-  toggleMenu();
+  pedidosDiv.classList.remove("hidden");
+  document.getElementById("sidebar").style.left="-260px";
 };
 
 window.mostrarVentas = ()=>{
   pedidosDiv.classList.add("hidden");
   ventasDiv.classList.remove("hidden");
-  toggleMenu();
-  cargarVentas();
+  document.getElementById("sidebar").style.left="-260px";
+  setTimeout(cargarVentas,100);
 };
 
-/* ================= PEDIDOS ================= */
-const qPendientes = query(collection(db,"pedidos"), where("estado","==","pendiente"));
-
-onSnapshot(qPendientes, snap=>{
+/* PEDIDOS */
+const qPend = query(collection(db,"pedidos"), where("estado","==","pendiente"));
+onSnapshot(qPend,snap=>{
   pedidosDiv.innerHTML="";
-  snap.forEach(docu=>{
-    const p = docu.data();
+  snap.forEach(d=>{
+    const p=d.data();
     pedidosDiv.innerHTML+=`
     <div class="pedido">
       <b>${p.negocio}</b><br>
       ${p.direccion}<br>
       Sacos: ${p.sacos}<br>
-      Total: $${p.total}<br>
-
+      Total: $${p.total}
       <div class="botones">
         <button class="maps" onclick="abrirMaps('${p.direccion}')">Maps</button>
         <button class="waze" onclick="abrirWaze('${p.direccion}')">Waze</button>
-        <button class="entregado" onclick="entregar('${docu.id}','${p.telefono}','${p.negocio}')">Entregado</button>
-        <button class="cancelado" onclick="cancelar('${docu.id}')">Cancelar</button>
+        <button class="entregado" onclick="entregar('${d.id}','${p.telefono}','${p.negocio}')">Entregado</button>
+        <button class="cancelado" onclick="cancelar('${d.id}')">Cancelar</button>
       </div>
     </div>`;
   });
 });
 
-window.abrirMaps = dir=>{
-  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(dir)}`);
+window.abrirMaps = d=>{
+  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d)}`);
 };
-window.abrirWaze = dir=>{
-  window.open(`https://waze.com/ul?q=${encodeURIComponent(dir)}`);
+window.abrirWaze = d=>{
+  window.open(`https://waze.com/ul?q=${encodeURIComponent(d)}`);
 };
 
-window.entregar = async(id,telefono,negocio)=>{
+window.entregar = async(id,tel,neg)=>{
   await updateDoc(doc(db,"pedidos",id),{estado:"entregado"});
-  const msg = `✅ *PEDIDO ENTREGADO*
-Gracias por su compra en *SAL DEL SERI*
-🏪 ${negocio}`;
-  window.open(`https://wa.me/52${telefono}?text=${encodeURIComponent(msg)}`);
+  const msg=`✅ Pedido entregado correctamente.
+Gracias por su compra en SAL DEL SERI 🧂`;
+  window.open(`https://wa.me/52${tel}?text=${encodeURIComponent(msg)}`);
 };
 
 window.cancelar = async(id)=>{
   await updateDoc(doc(db,"pedidos",id),{estado:"cancelado"});
 };
 
-/* ================= VENTAS ================= */
+/* VENTAS */
 function cargarVentas(){
   const q = query(collection(db,"pedidos"), where("estado","==","entregado"));
   onSnapshot(q,snap=>{
@@ -168,23 +224,24 @@ function cargarVentas(){
       sacos+=d.data().sacos;
       ingresos+=d.data().total;
     });
-    const costo = sacos*67.5;
-    const ganancia = ingresos-costo;
+    const costo=sacos*67.5;
+    const ganancia=ingresos-costo;
 
     document.getElementById("resumenVentas").innerHTML=`
       <b>Sacos vendidos:</b> ${sacos}<br>
       <b>Ingresos:</b> $${ingresos}<br>
+      <b>Costo producción:</b> $${costo}<br>
       <b>Ganancia:</b> $${ganancia}
     `;
 
     if(chart) chart.destroy();
-    chart = new Chart(document.getElementById("grafica"),{
+    chart=new Chart(document.getElementById("grafica"),{
       type:"bar",
       data:{
         labels:["Ingresos","Costo","Ganancia"],
         datasets:[{
           data:[ingresos,costo,ganancia],
-          backgroundColor:["#f57c00","#9e9e9e","#25D366"]
+          backgroundColor:["#f36c21","#9e9e9e","#25D366"]
         }]
       }
     });
@@ -194,5 +251,3 @@ function cargarVentas(){
 
 </body>
 </html>
-
-
