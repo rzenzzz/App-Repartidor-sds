@@ -6,90 +6,62 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
 <style>
-* {
-  box-sizing: border-box;
-}
-
-body {
-  margin: 0;
+body{
   font-family: Arial, sans-serif;
-  background: #f4f4f4;
+  background:#f4f4f4;
+  margin:0;
+  padding:15px;
 }
-
-header {
-  background: #e46b0a;
-  padding: 15px;
-  text-align: center;
+header{
+  display:flex;
+  align-items:center;
+  gap:15px;
+  margin-bottom:20px;
 }
-
-header img {
-  max-width: 180px;
+header img{
+  height:55px;
 }
-
-.contenedor {
-  max-width: 900px;
-  margin: auto;
-  padding: 15px;
+header h2{
+  margin:0;
+  color:#f57c00;
 }
-
-h2 {
-  margin-top: 10px;
-  text-align: center;
+.pedido{
+  background:#fff;
+  border-radius:8px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
 }
-
-.pedido {
-  background: #fff;
-  border-radius: 8px;
-  padding: 15px;
-  margin-bottom: 15px;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+.pedido.entregado{
+  color:green;
 }
-
-.pedido.entregado {
-  color: #1fa84f;
-  font-weight: bold;
+.pedido h3{
+  margin:0 0 8px 0;
 }
-
-.pedido small {
-  display: block;
-  margin-top: 3px;
+.pedido p{
+  margin:3px 0;
+  font-size:14px;
 }
-
-.botones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin-top: 10px;
+.botones{
+  margin-top:10px;
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
 }
-
-.botones button {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  font-size: 14px;
+button{
+  border:none;
+  padding:8px 14px;
+  border-radius:5px;
+  cursor:pointer;
+  font-size:14px;
 }
-
-.maps {
-  background: #34a853;
-  color: white;
+.entregar{
+  background:#4CAF50;
+  color:#fff;
 }
-
-.waze {
-  background: #1da1f2;
-  color: white;
-}
-
-.entregar {
-  background: #1fa84f;
-  color: white;
-}
-
-@media (max-width: 600px) {
-  .botones {
-    flex-direction: column;
-  }
+.mapa{
+  background:#1976D2;
+  color:#fff;
 }
 </style>
 </head>
@@ -97,20 +69,23 @@ h2 {
 <body>
 
 <header>
-  <!-- 🔥 LOGO SAL DEL SERI -->
   <img src="yiyi.png" alt="SAL DEL SERI">
+  <h2>Pedidos Pendientes</h2>
 </header>
 
-<div class="contenedor">
-  <h2>Pedidos pendientes</h2>
-  <div id="listaPedidos"></div>
-</div>
+<div id="listaPedidos"></div>
 
+<!-- 🔥 FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, updateDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { 
+  getFirestore, 
+  collection, 
+  onSnapshot, 
+  doc, 
+  updateDoc 
+} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-/* 🔥 FIREBASE CONFIG */
 const firebaseConfig = {
   apiKey: "AIzaSyDMBBaEgAk1EuRj7QSMqVsxnlC7aUvMz5w",
   authDomain: "sal-del-seri.firebaseapp.com",
@@ -123,70 +98,70 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-const listaPedidos = document.getElementById("listaPedidos");
+const lista = document.getElementById("listaPedidos");
 
-/* 🔄 PEDIDOS EN TIEMPO REAL */
-onSnapshot(collection(db, "pedidos"), snapshot => {
-  listaPedidos.innerHTML = "";
+onSnapshot(collection(db,"pedidos"), (snapshot)=>{
+  lista.innerHTML = "";
 
-  if (snapshot.empty) {
-    listaPedidos.innerHTML = "<p>No hay pedidos.</p>";
-    return;
-  }
-
-  snapshot.forEach(docSnap => {
-    const pedido = docSnap.data();
-    const id = docSnap.id;
+  snapshot.forEach(docSnap=>{
+    const p = docSnap.data();
 
     const div = document.createElement("div");
-    div.classList.add("pedido");
-
-    if (pedido.estado === "entregado") {
-      div.classList.add("entregado");
-    }
-
-    const direccionURL = encodeURIComponent(pedido.direccion);
+    div.className = "pedido" + (p.estado === "entregado" ? " entregado" : "");
 
     div.innerHTML = `
-      <strong>${pedido.negocio}</strong>
-      <small>Responsable: ${pedido.responsable}</small>
-      <small>Teléfono: ${pedido.telefono}</small>
-      <small>Dirección: ${pedido.direccion}</small>
-      <small>Sacos: ${pedido.sacos}</small>
-      <small>Total: $${pedido.total} MXN</small>
-
-      <div class="botones">
-        <button class="maps"
-          onclick="window.open('https://www.google.com/maps/search/?api=1&query=${direccionURL}', '_blank')">
-          Google Maps
-        </button>
-
-        <button class="waze"
-          onclick="window.open('https://waze.com/ul?q=${direccionURL}', '_blank')">
-          Waze
-        </button>
-
-        ${pedido.estado !== "entregado" ? `
-        <button class="entregar" onclick="entregarPedido('${id}')">
-          Marcar entregado
-        </button>` : ``}
-      </div>
+      <h3>${p.negocio}</h3>
+      <p><b>Responsable:</b> ${p.responsable}</p>
+      <p><b>Teléfono:</b> ${p.telefono}</p>
+      <p><b>Dirección:</b> ${p.direccion}</p>
+      <p><b>Sacos:</b> ${p.sacos}</p>
+      <p><b>Total:</b> $${p.total} MXN</p>
+      <p><b>Estado:</b> ${p.estado}</p>
     `;
 
-    listaPedidos.appendChild(div);
+    const botones = document.createElement("div");
+    botones.className = "botones";
+
+    // 📍 MAPS
+    const btnMapa = document.createElement("button");
+    btnMapa.className = "mapa";
+    btnMapa.textContent = "Abrir Maps";
+    btnMapa.onclick = ()=>{
+      const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(p.direccion)}`;
+      window.open(url,"_blank");
+    };
+
+    botones.appendChild(btnMapa);
+
+    // ✅ ENTREGAR
+    if(p.estado !== "entregado"){
+      const btnEntregar = document.createElement("button");
+      btnEntregar.className = "entregar";
+      btnEntregar.textContent = "Marcar como entregado";
+
+      btnEntregar.onclick = async ()=>{
+        const ok = confirm("¿Estás seguro de entregar el pedido?");
+        if(!ok) return;
+
+        await updateDoc(doc(db,"pedidos",docSnap.id),{
+          estado:"entregado",
+          entregadoEn: new Date()
+        });
+      };
+
+      botones.appendChild(btnEntregar);
+    }
+
+    div.appendChild(botones);
+    lista.appendChild(div);
   });
 });
-
-/* ✅ MARCAR COMO ENTREGADO */
-window.entregarPedido = async (id) => {
-  await updateDoc(doc(db, "pedidos", id), {
-    estado: "entregado"
-  });
-};
 </script>
 
 </body>
 </html>
+
+
 
 
 
