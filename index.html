@@ -1,128 +1,54 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Pedidos Pendientes | Sal del Seri</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8">
+<title>Pedidos Pendientes | Sal del Seri</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- Firebase -->
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
-  <style>
-    * {
-      box-sizing: border-box;
-      font-family: Arial, sans-serif;
-    }
-
-    body {
-      margin: 0;
-      background: #f6f2ec;
-    }
-
-    /* HEADER */
-    header {
-      background: #f37021;
-      color: white;
-      display: flex;
-      align-items: center;
-      padding: 12px 16px;
-    }
-
-    .menu {
-      font-size: 26px;
-      margin-right: 12px;
-      cursor: pointer;
-    }
-
-    header img {
-      height: 40px;
-      margin-right: 10px;
-    }
-
-    header h1 {
-      font-size: 18px;
-      margin: 0;
-    }
-
-    /* CONTENEDOR */
-    .container {
-      padding: 20px;
-    }
-
-    /* TARJETA */
-    .card {
-      background: white;
-      border-radius: 16px;
-      padding: 20px;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-      animation: fadeIn 0.4s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .card h2 {
-      margin-top: 0;
-    }
-
-    .info {
-      margin: 6px 0;
-      font-size: 15px;
-    }
-
-    .total {
-      font-weight: bold;
-      margin-top: 10px;
-    }
-
-    /* BOTONES */
-    .buttons {
-      margin-top: 15px;
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    button {
-      border: none;
-      padding: 10px 16px;
-      border-radius: 10px;
-      color: white;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .maps { background: #4caf50; }
-    .waze { background: #1e88e5; }
-    .entregado { background: #2ecc71; }
-    .cancelar { background: #e74c3c; }
-
-    button:hover {
-      opacity: 0.9;
-    }
-
-    .empty {
-      text-align: center;
-      margin-top: 40px;
-      color: #777;
-    }
-
-    @media (max-width: 600px) {
-      header h1 {
-        font-size: 16px;
-      }
-    }
-  </style>
+<style>
+body{margin:0;font-family:Arial;background:#f6f2ec}
+header{
+  background:#f37021;
+  color:#fff;
+  padding:12px;
+  display:flex;
+  align-items:center;
+}
+header img{height:40px;margin-right:10px}
+header h1{font-size:18px;margin:0}
+.container{padding:20px}
+.card{
+  background:#fff;
+  border-radius:16px;
+  padding:20px;
+  margin-bottom:20px;
+  box-shadow:0 8px 20px rgba(0,0,0,.1);
+}
+.card h2{margin:0 0 8px}
+.info{font-size:14px;margin:4px 0}
+.buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+button{
+  border:none;
+  padding:10px 14px;
+  border-radius:10px;
+  color:#fff;
+  cursor:pointer;
+}
+.maps{background:#4CAF50}
+.waze{background:#1E88E5}
+.entregado{background:#2ecc71}
+.cancelar{background:#e74c3c}
+.empty{text-align:center;color:#777;margin-top:40px}
+</style>
 </head>
+
 <body>
 
 <header>
-  <div class="menu">☰</div>
-  <img src="logo-sal-del-seri.png" alt="Sal del Seri">
+  <img src="logo-sal-del-seri.png">
   <h1>PEDIDOS PENDIENTES</h1>
 </header>
 
@@ -131,85 +57,93 @@
 </div>
 
 <script>
-  // 🔥 CONFIGURA AQUÍ TU FIREBASE REAL
-  const firebaseConfig = {
-    apiKey: "TU_API_KEY",
-    authDomain: "TU_DOMINIO.firebaseapp.com",
-    projectId: "TU_PROJECT_ID",
-    storageBucket: "TU_BUCKET.appspot.com",
-    messagingSenderId: "TU_SENDER_ID",
-    appId: "TU_APP_ID"
-  };
+const firebaseConfig = {
+  apiKey: "TU_API_KEY",
+  authDomain: "TU_DOMINIO.firebaseapp.com",
+  projectId: "TU_PROJECT_ID",
+  storageBucket: "TU_BUCKET.appspot.com",
+  messagingSenderId: "TU_SENDER_ID",
+  appId: "TU_APP_ID"
+};
 
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.firestore();
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const lista = document.getElementById("listaPedidos");
 
-  const lista = document.getElementById("listaPedidos");
+function abrirMaps(direccion){
+  const url = "https://www.google.com/maps/search/?api=1&query=" +
+              encodeURIComponent(direccion);
+  window.open(url, "_blank");
+}
 
-  function abrirMaps(direccion) {
-    const url = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(direccion)}`;
-    window.open(url, "_blank");
+function abrirWaze(direccion){
+  const url = "https://waze.com/ul?q=" +
+              encodeURIComponent(direccion) +
+              "&navigate=yes";
+  window.open(url, "_blank");
+}
+
+function marcarEntregado(id){
+  if(!confirm("¿Marcar pedido como ENTREGADO?")) return;
+  db.collection("pedidos").doc(id).update({estado:"entregado"});
+}
+
+function cancelarPedido(id){
+  if(!confirm("¿Cancelar pedido?")) return;
+  db.collection("pedidos").doc(id).update({estado:"cancelado"});
+}
+
+db.collection("pedidos")
+.where("estado","==","pendiente")
+.onSnapshot(snapshot=>{
+  lista.innerHTML="";
+
+  if(snapshot.empty){
+    lista.innerHTML='<p class="empty">No hay pedidos pendientes</p>';
+    return;
   }
 
-  function abrirWaze(direccion) {
-    const url = `https://waze.com/ul?q=${encodeURIComponent(direccion)}&navigate=yes`;
-    window.open(url, "_blank");
-  }
+  snapshot.forEach(doc=>{
+    const p = doc.data();
 
-  function marcarEntregado(id) {
-    if (!confirm("¿Confirmar pedido como ENTREGADO?")) return;
+    const card = document.createElement("div");
+    card.className="card";
 
-    db.collection("pedidos").doc(id).update({
-      estado: "entregado",
-      fechaEntrega: firebase.firestore.FieldValue.serverTimestamp()
-    });
-  }
+    card.innerHTML=`
+      <h2>${p.negocio}</h2>
+      <p class="info">${p.direccion}</p>
+      <p class="info">Sacos: ${p.sacos}</p>
+      <p class="info"><strong>Total: $${p.total}</strong></p>
 
-  function cancelarPedido(id) {
-    if (!confirm("¿Cancelar este pedido?")) return;
+      <div class="buttons">
+        <button class="maps" data-dir="${p.direccion}">Maps</button>
+        <button class="waze" data-dir="${p.direccion}">Waze</button>
+        <button class="entregado" data-id="${doc.id}">Entregado</button>
+        <button class="cancelar" data-id="${doc.id}">Cancelar</button>
+      </div>
+    `;
 
-    db.collection("pedidos").doc(id).update({
-      estado: "cancelado"
-    });
-  }
+    lista.appendChild(card);
 
-  db.collection("pedidos")
-    .where("estado", "==", "pendiente")
-    .onSnapshot(snapshot => {
-      lista.innerHTML = "";
+    card.querySelector(".maps")
+      .addEventListener("click",e=>abrirMaps(e.target.dataset.dir));
 
-      if (snapshot.empty) {
-        lista.innerHTML = `<p class="empty">No hay pedidos pendientes</p>`;
-        return;
-      }
+    card.querySelector(".waze")
+      .addEventListener("click",e=>abrirWaze(e.target.dataset.dir));
 
-      snapshot.forEach(doc => {
-        const p = doc.data();
+    card.querySelector(".entregado")
+      .addEventListener("click",e=>marcarEntregado(e.target.dataset.id));
 
-        const card = document.createElement("div");
-        card.className = "card";
-
-        card.innerHTML = `
-          <h2>${p.cliente}</h2>
-          <p class="info">${p.direccion}</p>
-          <p class="info">Sacos: ${p.sacos}</p>
-          <p class="total">Total: $${p.total.toLocaleString()}</p>
-
-          <div class="buttons">
-            <button class="maps" onclick="abrirMaps('${p.direccion}')">Maps</button>
-            <button class="waze" onclick="abrirWaze('${p.direccion}')">Waze</button>
-            <button class="entregado" onclick="marcarEntregado('${doc.id}')">Entregado</button>
-            <button class="cancelar" onclick="cancelarPedido('${doc.id}')">Cancelar</button>
-          </div>
-        `;
-
-        lista.appendChild(card);
-      });
-    });
+    card.querySelector(".cancelar")
+      .addEventListener("click",e=>cancelarPedido(e.target.dataset.id));
+  });
+});
 </script>
 
 </body>
 </html>
+
+
 
 
 
