@@ -2,252 +2,290 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>SAL DEL SERI | Repartidor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>Sal del Seri – Pedidos</title>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 :root{
-  --naranja:#f36c21;
-  --naranja-oscuro:#e85a10;
-  --gris:#f4f4f4;
-  --verde:#25D366;
-  --rojo:#e53935;
+  --naranja:#f36f21;
+  --naranja-oscuro:#d85f1d;
+  --verde:#2ecc71;
+  --rojo:#e74c3c;
   --azul:#1e88e5;
+  --fondo:#f7f2ea;
 }
 
-*{box-sizing:border-box}
-body{margin:0;font-family:Arial;background:var(--gris)}
+*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
 
+body{
+  margin:0;
+  background:var(--fondo);
+}
+
+/* HEADER */
 header{
   background:var(--naranja);
   color:#fff;
-  padding:12px 15px;
+  padding:10px 12px;
   display:flex;
   align-items:center;
-  gap:10px;
+  gap:12px;
   position:sticky;
   top:0;
-  z-index:5;
+  z-index:10;
 }
 
 .menu-btn{
+  width:40px;
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   font-size:26px;
   cursor:pointer;
+  flex-shrink:0;
 }
 
-header img{height:38px}
+header img{
+  height:35px;
+}
 
-#sidebar{
+header b{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  font-size:18px;
+}
+
+/* SIDEBAR */
+.sidebar{
   position:fixed;
   top:0;
   left:-260px;
   width:260px;
   height:100%;
   background:#fff;
-  box-shadow:2px 0 15px rgba(0,0,0,.3);
+  box-shadow:2px 0 10px rgba(0,0,0,.15);
   padding:20px;
   transition:.3s;
   z-index:20;
 }
 
-#sidebar h3{margin-top:0;color:var(--naranja)}
-#sidebar button{
+.sidebar.active{left:0}
+
+.sidebar h3{margin-top:0}
+
+.sidebar button{
   width:100%;
   padding:12px;
-  margin-bottom:10px;
   border:none;
   background:var(--naranja);
   color:#fff;
   font-size:16px;
-  border-radius:6px;
+  border-radius:8px;
   cursor:pointer;
 }
 
-main{padding:15px}
+/* CONTENIDO */
+.container{
+  padding:20px;
+}
 
-.pedido{
+.card{
   background:#fff;
-  padding:15px;
-  border-radius:8px;
-  margin-bottom:15px;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
-  animation:fade .3s ease;
+  border-radius:15px;
+  padding:20px;
+  box-shadow:0 8px 20px rgba(0,0,0,.1);
+  animation:fade .4s ease;
 }
 
 @keyframes fade{
   from{opacity:0;transform:translateY(10px)}
-  to{opacity:1}
+  to{opacity:1;transform:translateY(0)}
 }
 
-.botones button{
-  margin-top:8px;
-  margin-right:5px;
-  padding:8px 10px;
+.order h3{margin:0 0 5px}
+
+.buttons{
+  margin-top:15px;
+  display:flex;
+  flex-wrap:wrap;
+  gap:10px;
+}
+
+.buttons button{
   border:none;
-  border-radius:5px;
+  padding:10px 14px;
   color:#fff;
+  border-radius:8px;
   cursor:pointer;
 }
 
 .maps{background:#4caf50}
 .waze{background:var(--azul)}
 .entregado{background:var(--verde)}
-.cancelado{background:var(--rojo)}
+.cancelar{background:var(--rojo)}
 
-.hidden{display:none}
-
-canvas{
-  background:#fff;
-  border-radius:8px;
-  padding:10px;
+/* VENTAS */
+#ventas{
+  display:none;
 }
 
-.resumen{
-  background:#fff;
-  padding:15px;
-  border-radius:8px;
-  margin-top:15px;
-  box-shadow:0 2px 6px rgba(0,0,0,.15);
+.stats{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:15px;
+  margin-top:20px;
+}
+
+.stat{
+  background:var(--naranja-oscuro);
+  color:#fff;
+  padding:20px;
+  border-radius:15px;
+  text-align:center;
+}
+
+canvas{
+  margin-top:30px;
+  max-height:300px;
 }
 </style>
 </head>
 
 <body>
 
+<!-- SIDEBAR -->
+<div class="sidebar" id="sidebar">
+  <h3>Menú</h3>
+  <button onclick="mostrarVentas()">📊 Ventas</button>
+</div>
+
+<!-- HEADER -->
 <header>
-  <span class="menu-btn" onclick="toggleMenu()">☰</span>
-  <img src="yiyi.png">
+  <div class="menu-btn" onclick="toggleMenu()">☰</div>
+  <img src="logo.png" alt="Sal del Seri">
   <b>PEDIDOS PENDIENTES</b>
 </header>
 
-<div id="sidebar">
-  <h3>Menú</h3>
-  <button onclick="mostrarPedidos()">Pedidos</button>
-  <button onclick="mostrarVentas()">Ventas</button>
+<!-- PEDIDOS -->
+<div class="container" id="pedidos">
+  <div class="card order">
+    <h3>Abarrotes Don Pedro</h3>
+    <p>4ta periférico 532</p>
+    <p>Sacos: <b id="sacosPedido">100</b></p>
+    <p>Total: <b>$13,500</b></p>
+
+    <div class="buttons">
+      <button class="maps" onclick="abrirMaps()">Maps</button>
+      <button class="waze" onclick="abrirWaze()">Waze</button>
+      <button class="entregado" onclick="entregar()">Entregado</button>
+      <button class="cancelar">Cancelar</button>
+    </div>
+  </div>
 </div>
 
-<main>
+<!-- VENTAS -->
+<div class="container" id="ventas">
+  <button onclick="volver()">⬅ Volver</button>
 
-<section id="pedidos"></section>
+  <h2>📊 Ventas del Mes</h2>
 
-<section id="ventas" class="hidden">
-  <button onclick="mostrarPedidos()">⬅ Regresar</button>
-  <canvas id="grafica" height="200"></canvas>
-  <div class="resumen" id="resumenVentas"></div>
-</section>
+  <div class="stats">
+    <div class="stat">
+      <h3>Sacos vendidos</h3>
+      <p id="totalSacos">0</p>
+    </div>
+    <div class="stat">
+      <h3>Ingresos</h3>
+      <p id="ingresos">$0</p>
+    </div>
+    <div class="stat">
+      <h3>Ganancia</h3>
+      <p id="ganancia">$0</p>
+    </div>
+  </div>
 
-</main>
+  <canvas id="grafica"></canvas>
+</div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, onSnapshot, doc, updateDoc, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+<script>
+let sidebar=document.getElementById("sidebar")
+let pedidos=document.getElementById("pedidos")
+let ventas=document.getElementById("ventas")
 
-const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "sal-del-seri.firebaseapp.com",
-  projectId: "sal-del-seri",
-};
+let sacosVendidos=0
+let precioSaco=135
+let costoProduccion=67.5
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
+let chart
 
-const pedidosDiv = document.getElementById("pedidos");
-const ventasDiv = document.getElementById("ventas");
-let chart;
+function toggleMenu(){
+  sidebar.classList.toggle("active")
+}
 
-window.toggleMenu = ()=>{
-  const s=document.getElementById("sidebar");
-  s.style.left = s.style.left==="0px" ? "-260px":"0px";
-};
+function mostrarVentas(){
+  pedidos.style.display="none"
+  ventas.style.display="block"
+  sidebar.classList.remove("active")
+  renderGrafica()
+}
 
-window.mostrarPedidos = ()=>{
-  ventasDiv.classList.add("hidden");
-  pedidosDiv.classList.remove("hidden");
-  document.getElementById("sidebar").style.left="-260px";
-};
+function volver(){
+  ventas.style.display="none"
+  pedidos.style.display="block"
+}
 
-window.mostrarVentas = ()=>{
-  pedidosDiv.classList.add("hidden");
-  ventasDiv.classList.remove("hidden");
-  document.getElementById("sidebar").style.left="-260px";
-  setTimeout(cargarVentas,100);
-};
+function entregar(){
+  let sacos=parseInt(document.getElementById("sacosPedido").innerText)
+  sacosVendidos+=sacos
+  actualizarVentas()
+  alert("✅ Pedido entregado")
+}
 
-/* PEDIDOS */
-const qPend = query(collection(db,"pedidos"), where("estado","==","pendiente"));
-onSnapshot(qPend,snap=>{
-  pedidosDiv.innerHTML="";
-  snap.forEach(d=>{
-    const p=d.data();
-    pedidosDiv.innerHTML+=`
-    <div class="pedido">
-      <b>${p.negocio}</b><br>
-      ${p.direccion}<br>
-      Sacos: ${p.sacos}<br>
-      Total: $${p.total}
-      <div class="botones">
-        <button class="maps" onclick="abrirMaps('${p.direccion}')">Maps</button>
-        <button class="waze" onclick="abrirWaze('${p.direccion}')">Waze</button>
-        <button class="entregado" onclick="entregar('${d.id}','${p.telefono}','${p.negocio}')">Entregado</button>
-        <button class="cancelado" onclick="cancelar('${d.id}')">Cancelar</button>
-      </div>
-    </div>`;
-  });
-});
+function actualizarVentas(){
+  let ingresos=sacosVendidos*precioSaco
+  let ganancia=sacosVendidos*(precioSaco-costoProduccion)
 
-window.abrirMaps = d=>{
-  window.open(`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(d)}`);
-};
-window.abrirWaze = d=>{
-  window.open(`https://waze.com/ul?q=${encodeURIComponent(d)}`);
-};
+  document.getElementById("totalSacos").innerText=sacosVendidos
+  document.getElementById("ingresos").innerText="$"+ingresos.toLocaleString()
+  document.getElementById("ganancia").innerText="$"+ganancia.toLocaleString()
 
-window.entregar = async(id,tel,neg)=>{
-  await updateDoc(doc(db,"pedidos",id),{estado:"entregado"});
-  const msg=`✅ Pedido entregado correctamente.
-Gracias por su compra en SAL DEL SERI 🧂`;
-  window.open(`https://wa.me/52${tel}?text=${encodeURIComponent(msg)}`);
-};
+  renderGrafica()
+}
 
-window.cancelar = async(id)=>{
-  await updateDoc(doc(db,"pedidos",id),{estado:"cancelado"});
-};
+function renderGrafica(){
+  let ctx=document.getElementById("grafica")
+  if(chart) chart.destroy()
 
-/* VENTAS */
-function cargarVentas(){
-  const q = query(collection(db,"pedidos"), where("estado","==","entregado"));
-  onSnapshot(q,snap=>{
-    let sacos=0,ingresos=0;
-    snap.forEach(d=>{
-      sacos+=d.data().sacos;
-      ingresos+=d.data().total;
-    });
-    const costo=sacos*67.5;
-    const ganancia=ingresos-costo;
+  chart=new Chart(ctx,{
+    type:"bar",
+    data:{
+      labels:["Ventas"],
+      datasets:[{
+        label:"Sacos vendidos",
+        data:[sacosVendidos],
+        backgroundColor:"#f36f21"
+      }]
+    }
+  })
+}
 
-    document.getElementById("resumenVentas").innerHTML=`
-      <b>Sacos vendidos:</b> ${sacos}<br>
-      <b>Ingresos:</b> $${ingresos}<br>
-      <b>Costo producción:</b> $${costo}<br>
-      <b>Ganancia:</b> $${ganancia}
-    `;
+/* MAPS COMPATIBLE */
+function abrirMaps(){
+  window.location.href="https://www.google.com/maps/search/?api=1&query=4ta+periferico+532"
+}
 
-    if(chart) chart.destroy();
-    chart=new Chart(document.getElementById("grafica"),{
-      type:"bar",
-      data:{
-        labels:["Ingresos","Costo","Ganancia"],
-        datasets:[{
-          data:[ingresos,costo,ganancia],
-          backgroundColor:["#f36c21","#9e9e9e","#25D366"]
-        }]
-      }
-    });
-  });
+/* WAZE */
+function abrirWaze(){
+  window.location.href="https://waze.com/ul?q=4ta%20periferico%20532"
 }
 </script>
 
 </body>
 </html>
+
+
