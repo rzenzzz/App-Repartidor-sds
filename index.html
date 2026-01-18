@@ -2,279 +2,214 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
+<title>SAL DEL SERI | Repartidor</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sal del Seri</title>
-
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 :root{
-  --naranja:#f36f21;
-  --naranja-oscuro:#d85f1d;
-  --verde:#2ecc71;
-  --rojo:#e74c3c;
-  --azul:#1e88e5;
-  --fondo:#f6f2eb;
+  --naranja:#f57c00;
+  --gris:#f5f5f5;
+  --verde:#2e7d32;
+  --rojo:#c62828;
 }
 
-*{box-sizing:border-box;font-family:Arial,Helvetica,sans-serif}
+*{box-sizing:border-box}
 
 body{
   margin:0;
-  background:var(--fondo);
+  font-family:Arial, sans-serif;
+  background:var(--gris);
 }
 
 /* HEADER */
 header{
-  height:60px;
   background:var(--naranja);
   color:#fff;
   display:flex;
   align-items:center;
-  padding:0 15px;
   gap:12px;
-  position:fixed;
+  padding:10px 12px;
+  position:sticky;
   top:0;
-  width:100%;
   z-index:10;
 }
 
 .menu-btn{
+  width:40px;
+  height:40px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
   font-size:26px;
   cursor:pointer;
-  width:40px;
-  text-align:center;
+  flex-shrink:0;
 }
 
 header img{
   height:36px;
 }
 
-header span{
-  font-weight:bold;
-  font-size:18px;
+header b{
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
 
-/* OVERLAY */
-.overlay{
-  position:fixed;
-  inset:0;
-  background:rgba(0,0,0,.4);
-  display:none;
-  z-index:19;
-}
-
-.overlay.active{display:block}
-
-/* SIDEBAR */
-.sidebar{
-  position:fixed;
-  top:0;
-  left:-260px;
-  width:260px;
-  height:100%;
-  background:#fff;
-  padding:20px;
-  transition:.3s;
-  z-index:20;
-}
-
-.sidebar.active{left:0}
-
-.sidebar button{
-  width:100%;
-  padding:12px;
-  border:none;
-  background:var(--naranja);
-  color:#fff;
-  font-size:16px;
-  border-radius:8px;
-  cursor:pointer;
-}
-
-/* CONTENIDO */
-.container{
-  padding:90px 20px 20px;
+/* LISTA */
+.contenedor{
+  padding:15px;
 }
 
 .card{
   background:#fff;
-  border-radius:15px;
-  padding:20px;
-  box-shadow:0 8px 20px rgba(0,0,0,.1);
-  animation:fade .4s ease;
+  border-radius:10px;
+  padding:15px;
+  margin-bottom:15px;
+  box-shadow:0 2px 6px rgba(0,0,0,.1);
+  animation:fade .3s ease;
 }
 
-@keyframes fade{
-  from{opacity:0;transform:translateY(10px)}
-  to{opacity:1;transform:none}
+.card h3{
+  margin:0 0 5px 0;
 }
 
-.buttons{
+.card p{
+  margin:4px 0;
+  font-size:14px;
+}
+
+.acciones{
   display:flex;
   flex-wrap:wrap;
-  gap:10px;
-  margin-top:15px;
+  gap:8px;
+  margin-top:10px;
 }
 
-button{
+.acciones button{
+  flex:1;
   border:none;
-  padding:10px 14px;
-  color:#fff;
-  border-radius:8px;
+  padding:10px;
+  border-radius:6px;
+  font-size:14px;
   cursor:pointer;
+  color:#fff;
 }
 
-.maps{background:#4caf50}
-.waze{background:var(--azul)}
-.entregado{background:var(--verde)}
+.maps{background:#4285F4}
+.waze{background:#00c853}
+.entregar{background:var(--verde)}
 .cancelar{background:var(--rojo)}
 
-/* VENTAS */
-#ventas{display:none}
-
-.stats{
-  display:grid;
-  grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
-  gap:15px;
-  margin-top:20px;
-}
-
-.stat{
-  background:var(--naranja-oscuro);
-  color:#fff;
-  padding:20px;
-  border-radius:15px;
-  text-align:center;
-}
-
-canvas{max-height:300px;margin-top:30px}
-
-/* RESPONSIVE */
-@media(max-width:600px){
-  header span{font-size:16px}
+@keyframes fade{
+  from{opacity:0; transform:translateY(5px)}
+  to{opacity:1; transform:translateY(0)}
 }
 </style>
 </head>
 
 <body>
 
-<div class="overlay" id="overlay" onclick="cerrarMenu()"></div>
-
-<div class="sidebar" id="sidebar">
-  <h3>Menú</h3>
-  <button onclick="abrirVentas()">📊 Ventas</button>
-</div>
-
 <header>
-  <div class="menu-btn" onclick="toggleMenu()">☰</div>
-  <img src="logo.png">
-  <span>PEDIDOS PENDIENTES</span>
+  <div class="menu-btn">☰</div>
+  <img src="yiyi.png" alt="SAL DEL SERI">
+  <b>PEDIDOS PENDIENTES</b>
 </header>
 
-<div class="container" id="pedidos">
-  <div class="card">
-    <h3>Abarrotes Don Pedro</h3>
-    <p>4ta periférico 532</p>
-    <p>Sacos: <b id="sacosPedido">100</b></p>
-    <p>Total: <b>$13,500</b></p>
+<div class="contenedor" id="lista"></div>
 
-    <div class="buttons">
-      <button class="maps" onclick="maps()">Maps</button>
-      <button class="waze" onclick="waze()">Waze</button>
-      <button class="entregado" onclick="entregar()">Entregado</button>
-      <button class="cancelar">Cancelar</button>
-    </div>
-  </div>
-</div>
+<!-- 🔥 FIREBASE -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getFirestore, collection, onSnapshot, query, where, doc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-<div class="container" id="ventas">
-  <button onclick="volver()">⬅ Volver</button>
-  <h2>📊 Ventas del Mes</h2>
+const firebaseConfig = {
+  apiKey: "AIzaSyDMBBaEgAk1EuRj7QSMqVsxnlC7aUvMz5w",
+  authDomain: "sal-del-seri.firebaseapp.com",
+  projectId: "sal-del-seri",
+  storageBucket: "sal-del-seri.firebasestorage.app",
+  messagingSenderId: "465867166498",
+  appId: "1:465867166498:web:683a92396f3e369df4cb7b"
+};
 
-  <div class="stats">
-    <div class="stat"><h3>Sacos</h3><p id="vsacos">0</p></div>
-    <div class="stat"><h3>Ingresos</h3><p id="ving">$0</p></div>
-    <div class="stat"><h3>Ganancia</h3><p id="vgan">$0</p></div>
-  </div>
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
 
-  <canvas id="grafica"></canvas>
-</div>
+const lista = document.getElementById("lista");
 
-<script>
-let sidebar=document.getElementById("sidebar")
-let overlay=document.getElementById("overlay")
-let pedidos=document.getElementById("pedidos")
-let ventas=document.getElementById("ventas")
+/* 🔄 PEDIDOS PENDIENTES EN TIEMPO REAL */
+const q = query(
+  collection(db,"pedidos"),
+  where("estado","==","pendiente")
+);
 
-let sacos=0
-let precio=135
-let costo=67.5
-let chart
+onSnapshot(q, snap=>{
+  lista.innerHTML = "";
+  if(snap.empty){
+    lista.innerHTML = "<p>No hay pedidos pendientes.</p>";
+    return;
+  }
 
-function toggleMenu(){
-  sidebar.classList.add("active")
-  overlay.classList.add("active")
-}
+  snap.forEach(docu=>{
+    const d = docu.data();
 
-function cerrarMenu(){
-  sidebar.classList.remove("active")
-  overlay.classList.remove("active")
-}
+    const mapsURL =
+      "https://www.google.com/maps/search/?api=1&query=" +
+      encodeURIComponent(d.direccion);
 
-function abrirVentas(){
-  pedidos.style.display="none"
-  ventas.style.display="block"
-  cerrarMenu()
-  grafica()
-}
+    const wazeURL =
+      "https://waze.com/ul?q=" +
+      encodeURIComponent(d.direccion) +
+      "&navigate=yes";
 
-function volver(){
-  ventas.style.display="none"
-  pedidos.style.display="block"
-}
+    const card = document.createElement("div");
+    card.className = "card";
 
-function entregar(){
-  sacos+=parseInt(document.getElementById("sacosPedido").innerText)
-  actualizar()
-  alert("Pedido entregado correctamente")
-}
+    card.innerHTML = `
+      <h3>${d.negocio}</h3>
+      <p><b>Responsable:</b> ${d.responsable}</p>
+      <p><b>Tel:</b> ${d.telefono}</p>
+      <p><b>Dirección:</b> ${d.direccion}</p>
+      <p><b>Sacos:</b> ${d.sacos}</p>
 
-function actualizar(){
-  let ingresos=sacos*precio
-  let ganancia=sacos*(precio-costo)
-  vsacos.innerText=sacos
-  ving.innerText="$"+ingresos.toLocaleString()
-  vgan.innerText="$"+ganancia.toLocaleString()
-  grafica()
-}
+      <div class="acciones">
+        <button class="maps">Google Maps</button>
+        <button class="waze">Waze</button>
+        <button class="entregar">Entregado</button>
+        <button class="cancelar">Cancelar</button>
+      </div>
+    `;
 
-function grafica(){
-  let ctx=document.getElementById("grafica")
-  if(chart) chart.destroy()
-  chart=new Chart(ctx,{
-    type:"bar",
-    data:{
-      labels:["Ventas"],
-      datasets:[{
-        data:[sacos],
-        backgroundColor:"#f36f21"
-      }]
-    }
-  })
-}
+    const botones = card.querySelectorAll("button");
 
-function maps(){
-  location.href="https://www.google.com/maps/search/?api=1&query=4ta+periferico+532"
-}
+    botones[0].onclick = ()=>window.open(mapsURL,"_blank");
+    botones[1].onclick = ()=>window.open(wazeURL,"_blank");
 
-function waze(){
-  location.href="https://waze.com/ul?q=4ta%20periferico%20532"
-}
+    botones[2].onclick = async ()=>{
+      if(confirm("¿Marcar pedido como ENTREGADO?")){
+        await updateDoc(doc(db,"pedidos",docu.id),{
+          estado:"entregado",
+          fechaEntrega:new Date()
+        });
+      }
+    };
+
+    botones[3].onclick = async ()=>{
+      if(confirm("¿Cancelar pedido?")){
+        await updateDoc(doc(db,"pedidos",docu.id),{
+          estado:"cancelado"
+        });
+      }
+    };
+
+    lista.appendChild(card);
+  });
+});
 </script>
 
 </body>
 </html>
+
+
 
 
 
